@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Chain } from '@/lib/types';
 
 interface ResultsProps {
@@ -17,12 +17,37 @@ export default function Results({
   hasCalculated,
 }: ResultsProps) {
   const [displayCount, setDisplayCount] = useState(CHUNK_SIZE);
+  const [excludedStarters, setExcludedStarters] = useState<Set<string>>(new Set());
   const loaderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Reset display count when chains change
+  // Extract unique starting words from chains
+  const startingWords = useMemo(() => {
+    const starters = new Map<string, number>();
+    for (const chain of chains) {
+      if (chain.guesses.length > 0) {
+        const starter = chain.guesses[0].toUpperCase();
+        starters.set(starter, (starters.get(starter) || 0) + 1);
+      }
+    }
+    // Sort by count (descending), then alphabetically
+    return Array.from(starters.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [chains]);
+
+  // Filter chains based on excluded starters
+  const filteredChains = useMemo(() => {
+    if (excludedStarters.size === 0) return chains;
+    return chains.filter(chain => {
+      if (chain.guesses.length === 0) return true;
+      return !excludedStarters.has(chain.guesses[0].toUpperCase());
+    });
+  }, [chains, excludedStarters]);
+
+  // Reset display count and excluded starters when chains change
   useEffect(() => {
     setDisplayCount(CHUNK_SIZE);
+    setExcludedStarters(new Set());
   }, [chains]);
 
   // Infinite scroll with IntersectionObserver
@@ -32,8 +57,8 @@ export default function Results({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && displayCount < chains.length) {
-          setDisplayCount(prev => Math.min(prev + CHUNK_SIZE, chains.length));
+        if (entries[0].isIntersecting && displayCount < filteredChains.length) {
+          setDisplayCount(prev => Math.min(prev + CHUNK_SIZE, filteredChains.length));
         }
       },
       {
@@ -45,7 +70,30 @@ export default function Results({
 
     observer.observe(loader);
     return () => observer.disconnect();
-  }, [displayCount, chains.length]);
+  }, [displayCount, filteredChains.length]);
+
+  const toggleStarter = (word: string) => {
+    setExcludedStarters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(word)) {
+        newSet.delete(word);
+      } else {
+        newSet.add(word);
+      }
+      return newSet;
+    });
+    setDisplayCount(CHUNK_SIZE); // Reset display count when filter changes
+  };
+
+  const selectAll = () => {
+    setExcludedStarters(new Set());
+    setDisplayCount(CHUNK_SIZE);
+  };
+
+  const selectNone = () => {
+    setExcludedStarters(new Set(startingWords.map(([word]) => word)));
+    setDisplayCount(CHUNK_SIZE);
+  };
 
   if (isCalculating) {
     return (
@@ -87,8 +135,8 @@ export default function Results({
     );
   }
 
-  const displayedChains = chains.slice(0, displayCount);
-  const hasMore = displayCount < chains.length;
+  const displayedChains = filteredChains.slice(0, displayCount);
+  const hasMore = displayCount < filteredChains.length;
 
   return (
     <div className="w-full max-w-[600px] mt-8">
@@ -96,7 +144,8 @@ export default function Results({
         <h2 className="text-lg font-bold text-white mb-4">
           Results{' '}
           <span className="text-gray-400 font-normal">
-            ({chains.length} chain{chains.length !== 1 ? 's' : ''} found)
+            ({filteredChains.length} chain{filteredChains.length !== 1 ? 's' : ''} found
+            {excludedStarters.size > 0 && ` of ${chains.length}`})
           </span>
         </h2>
 
@@ -132,10 +181,64 @@ export default function Results({
         </div>
 
         {/* Show count info */}
-        {displayCount < chains.length && (
+        {displayCount < filteredChains.length && (
           <p className="text-gray-500 text-xs text-center mt-2">
-            Showing {displayCount} of {chains.length} chains. Scroll for more.
+            Showing {displayCount} of {filteredChains.length} chains. Scroll for more.
           </p>
+        )}
+
+        {/* Starting Words Filter */}
+        {startingWords.length > 1 && (
+          <div className="mt-6 pt-4 border-t border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-300">
+                Filter by Starting Word
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={selectAll}
+                  className="text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  All
+                </button>
+                <span className="text-gray-600">|</span>
+                <button
+                  onClick={selectNone}
+                  className="text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {startingWords.map(([word, count]) => {
+                const isChecked = !excludedStarters.has(word);
+                return (
+                  <label
+                    key={word}
+                    className={`
+                      flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all text-xs
+                      ${isChecked
+                        ? 'bg-tile-green/20 text-tile-green border border-tile-green/40'
+                        : 'bg-gray-800 text-gray-500 border border-gray-700 hover:border-gray-600'
+                      }
+                    `}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleStarter(word)}
+                      className="sr-only"
+                    />
+                    <span className="font-mono font-bold">{word}</span>
+                    <span className={`text-[10px] ${isChecked ? 'text-tile-green/70' : 'text-gray-600'}`}>
+                      ({count})
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </div>
