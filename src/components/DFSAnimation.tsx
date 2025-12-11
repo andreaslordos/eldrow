@@ -82,32 +82,45 @@ export default function DFSAnimation() {
         setIsPlaying(false);
         return prev;
       }
-
-      const { nodeId, action, chain } = DFS_SEQUENCE[next];
-
-      setNodeStates(prevStates => {
-        const newStates = new Map(prevStates);
-        const currentState = newStates.get(nodeId);
-        if (currentState) {
-          let newStatus: NodeState['status'] = 'idle';
-          if (action === 'explore') {
-            newStatus = 'exploring';
-          } else if (action === 'backtrack') {
-            newStatus = currentState.status === 'solution' ? 'solution' : 'visited';
-          } else if (action === 'solution') {
-            newStatus = 'solution';
-            if (chain) {
-              setChainsFound(prev => [...prev, chain]);
-            }
-          }
-          newStates.set(nodeId, { ...currentState, status: newStatus });
-        }
-        return newStates;
-      });
-
       return next;
     });
   }, []);
+
+  // Process the current step's action
+  useEffect(() => {
+    if (currentStep < 0 || currentStep >= DFS_SEQUENCE.length) return;
+
+    const { nodeId, action, chain } = DFS_SEQUENCE[currentStep];
+
+    setNodeStates(prevStates => {
+      const newStates = new Map(prevStates);
+      const currentState = newStates.get(nodeId);
+      if (currentState) {
+        let newStatus: NodeState['status'] = 'idle';
+        if (action === 'explore') {
+          newStatus = 'exploring';
+        } else if (action === 'backtrack') {
+          newStatus = currentState.status === 'solution' ? 'solution' : 'visited';
+        } else if (action === 'solution') {
+          newStatus = 'solution';
+        }
+        newStates.set(nodeId, { ...currentState, status: newStatus });
+      }
+      return newStates;
+    });
+
+    // Add chain outside of setNodeStates to avoid duplicate calls
+    if (action === 'solution' && chain) {
+      setChainsFound(prev => {
+        // Check if this chain is already added
+        const chainStr = chain.join('→');
+        if (prev.some(c => c.join('→') === chainStr)) {
+          return prev;
+        }
+        return [...prev, chain];
+      });
+    }
+  }, [currentStep]);
 
   useEffect(() => {
     if (!isPlaying) return;
