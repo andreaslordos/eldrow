@@ -38,6 +38,7 @@ export default function Home() {
   const [chains, setChains] = useState<Chain[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Modal state
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -60,9 +61,38 @@ export default function Home() {
     setSelectedCol(col);
   }, []);
 
+  // Validate grid against progress mode rules
+  const validateProgressMode = useCallback((lastRow: number): string | null => {
+    if (progressMode === 'none') return null;
+
+    // For hard/strict mode: if a position is green in row N, it must be green in subsequent rows
+    // Hard: only check against immediate previous row
+    // Strict: check against all previous rows
+
+    for (let rowIdx = 1; rowIdx <= lastRow; rowIdx++) {
+      const checkFromRow = progressMode === 'hard' ? rowIdx - 1 : 0;
+
+      for (let checkRow = checkFromRow; checkRow < rowIdx; checkRow++) {
+        for (let col = 0; col < 5; col++) {
+          // If previous row has green at this position
+          if (grid[checkRow][col].color === 2) {
+            // Current row must also have green at this position
+            if (grid[rowIdx][col].color !== 2) {
+              const modeName = progressMode === 'hard' ? 'Hard' : 'Strict';
+              return `${modeName} mode violation: Row ${rowIdx + 1} must have green in position ${col + 1} (locked from Row ${checkRow + 1})`;
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }, [grid, progressMode]);
+
   const handleCalculate = useCallback(() => {
     if (!reverser || answer.length !== 5) return;
 
+    setValidationError(null);
     setIsCalculating(true);
     setHasCalculated(true);
 
@@ -95,6 +125,15 @@ export default function Home() {
             }
           }
           lastActiveRow = hasAnyColor ? 5 : -1;
+        }
+
+        // Validate progress mode before calculating
+        const error = validateProgressMode(lastActiveRow);
+        if (error) {
+          setValidationError(error);
+          setChains([]);
+          setIsCalculating(false);
+          return;
         }
 
         const rows: RowSpec[] = [];
@@ -142,7 +181,7 @@ export default function Home() {
         setIsCalculating(false);
       }
     }, 50);
-  }, [reverser, grid, answer, progressMode, weirdFallback]);
+  }, [reverser, grid, answer, progressMode, weirdFallback, validateProgressMode]);
 
   return (
     <main className="min-h-screen bg-background flex flex-col items-center py-8 px-4">
@@ -200,6 +239,7 @@ export default function Home() {
         chains={chains}
         isCalculating={isCalculating}
         hasCalculated={hasCalculated}
+        validationError={validationError}
       />
     </main>
   );

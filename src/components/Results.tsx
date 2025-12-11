@@ -7,6 +7,7 @@ interface ResultsProps {
   chains: Chain[];
   isCalculating: boolean;
   hasCalculated: boolean;
+  validationError: string | null;
 }
 
 const CHUNK_SIZE = 1000;
@@ -15,6 +16,7 @@ export default function Results({
   chains,
   isCalculating,
   hasCalculated,
+  validationError,
 }: ResultsProps) {
   const [displayCount, setDisplayCount] = useState(CHUNK_SIZE);
   const [excludedStarters, setExcludedStarters] = useState<Set<string>>(new Set());
@@ -94,6 +96,27 @@ export default function Results({
     setExcludedStarters(new Set(startingWords.map(([word]) => word)));
     setDisplayCount(CHUNK_SIZE);
   };
+
+  if (validationError) {
+    return (
+      <div className="w-full max-w-[600px] mt-8">
+        <div className="border-t border-gray-700 pt-6">
+          <div className="bg-red-900/30 border border-red-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-red-400 text-lg">⚠</span>
+              <div>
+                <p className="text-red-400 font-medium text-sm">Invalid Pattern</p>
+                <p className="text-red-300/80 text-sm mt-1">{validationError}</p>
+                <p className="text-gray-500 text-xs mt-2">
+                  Change the grid colors or switch to &quot;None&quot; progress mode.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isCalculating) {
     return (
