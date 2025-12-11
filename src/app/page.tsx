@@ -130,19 +130,19 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background flex flex-col items-center py-8 px-4">
       {/* Header */}
-      <header className="w-full max-w-[350px] relative mb-8">
+      <header className="mb-8 text-center">
+        <h1 className="text-4xl font-bold text-white tracking-wider">
+          ELDROW
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">
+          Reverse Wordle Solver
+        </p>
         <button
           onClick={() => setShowHowItWorks(true)}
-          className="absolute left-0 top-0 text-xs text-gray-400 hover:text-white transition-colors underline underline-offset-2"
+          className="text-xs text-gray-400 hover:text-white transition-colors underline underline-offset-2 mt-2"
         >
           How does this work?
         </button>
-        <h1 className="text-4xl font-bold text-white tracking-wider text-center">
-          ELDROW
-        </h1>
-        <p className="text-gray-500 text-center text-sm mt-1">
-          Reverse Wordle Solver
-        </p>
       </header>
 
       {/* How It Works Modal */}

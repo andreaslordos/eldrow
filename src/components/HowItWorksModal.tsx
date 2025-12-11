@@ -117,22 +117,19 @@ export default function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProp
         <section>
           <h3 className="text-lg font-semibold text-white mb-3">The Algorithm</h3>
           <p className="text-gray-300 text-sm leading-relaxed mb-4">
-            Eldrow uses <strong className="text-tile-yellow">Depth-First Search (DFS)</strong> to explore all
-            possible word combinations. It builds a tree where each level represents a guess, then explores
-            paths that match your color patterns.
+            Eldrow uses <strong className="text-tile-yellow">Depth-First Search (DFS)</strong> to find valid word chains.
+            For each row, it checks candidate words against your color pattern—if a word produces the exact pattern
+            you specified when scored against the answer, it&apos;s valid.
           </p>
 
           <div className="bg-gray-800/50 rounded-lg p-4">
-            <p className="text-gray-400 text-xs mb-3 text-center">
-              Interactive DFS visualization — watch how the algorithm explores the search tree
-            </p>
             <DFSAnimation />
           </div>
 
           <div className="mt-4 text-gray-400 text-xs space-y-1">
-            <p>• <strong className="text-tile-yellow">Yellow nodes</strong> = currently exploring</p>
-            <p>• <strong className="text-tile-green">Green nodes</strong> = valid solution found</p>
-            <p>• <strong className="text-gray-400">Gray nodes</strong> = visited, backtracked</p>
+            <p>• <strong className="text-tile-yellow">Yellow</strong> = currently checking</p>
+            <p>• <strong className="text-tile-green">Green</strong> = valid (produces the required pattern)</p>
+            <p>• <strong style={{ color: '#6b2121' }}>Red</strong> = invalid (shares letters with answer)</p>
           </div>
         </section>
 
@@ -179,10 +176,6 @@ export default function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProp
           <h3 className="text-lg font-semibold text-white mb-3">Other Options</h3>
           <div className="space-y-2 text-sm">
             <p className="text-gray-300">
-              <strong className="text-white">No Repeat:</strong>{' '}
-              <span className="text-gray-400">Prevents the same word from appearing twice in a chain.</span>
-            </p>
-            <p className="text-gray-300">
               <strong className="text-white">Weird Words:</strong>{' '}
               <span className="text-gray-400">
                 Includes obscure words (like AALII or ZOEAE) as a fallback if no common words work.
@@ -197,8 +190,8 @@ export default function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProp
           <ul className="text-gray-400 text-xs space-y-1 list-disc list-inside">
             <li>Use arrow keys or Tab to navigate between tiles</li>
             <li>Press Backspace to clear letters</li>
-            <li>Only rows with at least one colored tile are processed</li>
-            <li>Results are limited to 1000 chains for performance</li>
+            <li>All-gray rows are valid (means no letters match the answer)</li>
+            <li>Scroll through results to load more chains</li>
           </ul>
         </section>
       </div>

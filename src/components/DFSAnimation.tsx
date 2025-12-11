@@ -7,43 +7,37 @@ interface NodeState {
   status: 'idle' | 'exploring' | 'backtrack' | 'solution' | 'visited';
 }
 
-// Tree structure for DFS visualization
+// Tree structure showing Eldrow searching for valid first words
+// Scenario: Answer is CRANE, Row 1 is all gray, Row 2 is all green
+// We're finding words that share NO letters with CRANE
 const TREE_NODES = [
-  { id: 'root', label: 'Start', x: 150, y: 20, children: ['a', 'b'] },
-  { id: 'a', label: 'CRANE', x: 75, y: 80, children: ['c', 'd'] },
-  { id: 'b', label: 'AUDIO', x: 225, y: 80, children: ['e', 'f'] },
-  { id: 'c', label: 'SLATE', x: 37, y: 140, children: [] },
-  { id: 'd', label: 'STARE', x: 112, y: 140, children: [] },
-  { id: 'e', label: 'RAISE', x: 187, y: 140, children: [] },
-  { id: 'f', label: 'TEARS', x: 262, y: 140, children: [] },
+  { id: 'root', label: 'Row 1', x: 150, y: 20, children: ['a', 'b', 'c', 'd'] },
+  { id: 'a', label: 'LYMPH', x: 45, y: 90, children: [] },   // Valid - no shared letters
+  { id: 'b', label: 'TRACE', x: 105, y: 90, children: [] },  // Invalid - has R,A,C,E
+  { id: 'c', label: 'JUMPY', x: 195, y: 90, children: [] },  // Valid - no shared letters
+  { id: 'd', label: 'FRESH', x: 255, y: 90, children: [] },  // Invalid - has R,E
 ];
 
 const EDGES = [
   { from: 'root', to: 'a' },
   { from: 'root', to: 'b' },
-  { from: 'a', to: 'c' },
-  { from: 'a', to: 'd' },
-  { from: 'b', to: 'e' },
-  { from: 'b', to: 'f' },
+  { from: 'root', to: 'c' },
+  { from: 'root', to: 'd' },
 ];
 
-// DFS animation sequence
+// DFS animation sequence - checking each candidate word
 const DFS_SEQUENCE: Array<{ nodeId: string; action: 'explore' | 'backtrack' | 'solution' }> = [
   { nodeId: 'root', action: 'explore' },
-  { nodeId: 'a', action: 'explore' },
-  { nodeId: 'c', action: 'explore' },
-  { nodeId: 'c', action: 'backtrack' },
-  { nodeId: 'd', action: 'explore' },
-  { nodeId: 'd', action: 'solution' },
-  { nodeId: 'd', action: 'backtrack' },
+  { nodeId: 'a', action: 'explore' },    // Check LYMPH
+  { nodeId: 'a', action: 'solution' },   // LYMPH works! (all gray against CRANE)
   { nodeId: 'a', action: 'backtrack' },
-  { nodeId: 'b', action: 'explore' },
-  { nodeId: 'e', action: 'explore' },
-  { nodeId: 'e', action: 'solution' },
-  { nodeId: 'e', action: 'backtrack' },
-  { nodeId: 'f', action: 'explore' },
-  { nodeId: 'f', action: 'backtrack' },
-  { nodeId: 'b', action: 'backtrack' },
+  { nodeId: 'b', action: 'explore' },    // Check TRACE
+  { nodeId: 'b', action: 'backtrack' },  // TRACE fails (has R,A,C,E)
+  { nodeId: 'c', action: 'explore' },    // Check JUMPY
+  { nodeId: 'c', action: 'solution' },   // JUMPY works!
+  { nodeId: 'c', action: 'backtrack' },
+  { nodeId: 'd', action: 'explore' },    // Check FRESH
+  { nodeId: 'd', action: 'backtrack' },  // FRESH fails (has R,E)
   { nodeId: 'root', action: 'backtrack' },
 ];
 
@@ -92,7 +86,8 @@ export default function DFSAnimation() {
             newStatus = currentState.status === 'solution' ? 'solution' : 'visited';
           } else if (action === 'solution') {
             newStatus = 'solution';
-            setSolutionsFound(prev => [...prev, nodeId]);
+            const nodeLabel = TREE_NODES.find(n => n.id === nodeId)?.label || nodeId;
+            setSolutionsFound(prev => [...prev, nodeLabel]);
           }
           newStates.set(nodeId, { ...currentState, status: newStatus });
         }
@@ -108,7 +103,7 @@ export default function DFSAnimation() {
 
     const interval = setInterval(() => {
       step();
-    }, 600);
+    }, 700);
 
     return () => clearInterval(interval);
   }, [isPlaying, step]);
@@ -123,7 +118,7 @@ export default function DFSAnimation() {
     switch (status) {
       case 'exploring': return '#b59f3b'; // yellow
       case 'solution': return '#538d4e'; // green
-      case 'visited': return '#3a3a3c'; // gray
+      case 'visited': return '#6b2121'; // red-ish for rejected
       case 'backtrack': return '#3a3a3c';
       default: return '#2a2a2b'; // idle
     }
@@ -139,10 +134,15 @@ export default function DFSAnimation() {
 
   return (
     <div className="w-full">
+      {/* Context label */}
+      <div className="text-center mb-2 text-xs text-gray-500">
+        Finding words that produce <span className="text-tile-gray px-1 rounded">all gray</span> against <span className="text-tile-green font-mono">CRANE</span>
+      </div>
+
       <svg
-        viewBox="0 0 300 180"
+        viewBox="0 0 300 130"
         className="w-full max-w-[300px] mx-auto"
-        style={{ minHeight: '180px' }}
+        style={{ minHeight: '130px' }}
       >
         {/* Edges */}
         {EDGES.map(edge => {
@@ -174,25 +174,43 @@ export default function DFSAnimation() {
         {TREE_NODES.map(n => {
           const state = nodeStates.get(n.id);
           const status = state?.status || 'idle';
+          const isRoot = n.id === 'root';
 
           return (
             <g key={n.id} className={getNodeClass(status)}>
-              <circle
-                cx={n.x}
-                cy={n.y}
-                r={n.id === 'root' ? 18 : 15}
-                fill={getNodeColor(status)}
-                stroke={status === 'exploring' ? '#fff' : 'transparent'}
-                strokeWidth={2}
-                className="transition-all duration-300"
-              />
+              {isRoot ? (
+                <rect
+                  x={n.x - 25}
+                  y={n.y - 12}
+                  width={50}
+                  height={24}
+                  rx={4}
+                  fill={getNodeColor(status)}
+                  stroke={status === 'exploring' ? '#fff' : 'transparent'}
+                  strokeWidth={2}
+                  className="transition-all duration-300"
+                />
+              ) : (
+                <rect
+                  x={n.x - 28}
+                  y={n.y - 12}
+                  width={56}
+                  height={24}
+                  rx={4}
+                  fill={getNodeColor(status)}
+                  stroke={status === 'exploring' ? '#fff' : 'transparent'}
+                  strokeWidth={2}
+                  className="transition-all duration-300"
+                />
+              )}
               <text
                 x={n.x}
                 y={n.y + 4}
                 textAnchor="middle"
                 fill="#fff"
-                fontSize={n.id === 'root' ? 8 : 6}
+                fontSize={isRoot ? 10 : 9}
                 fontWeight="bold"
+                fontFamily="monospace"
                 className="select-none pointer-events-none"
               >
                 {n.label}
@@ -203,7 +221,7 @@ export default function DFSAnimation() {
       </svg>
 
       {/* Controls */}
-      <div className="flex items-center justify-center gap-3 mt-4">
+      <div className="flex items-center justify-center gap-3 mt-3">
         <button
           onClick={() => {
             if (currentStep >= DFS_SEQUENCE.length - 1) {
@@ -233,25 +251,28 @@ export default function DFSAnimation() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs text-gray-400">
+      <div className="flex flex-wrap justify-center gap-4 mt-3 text-xs text-gray-400">
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-tile-yellow" />
-          <span>Exploring</span>
+          <span className="w-3 h-3 rounded bg-tile-yellow" />
+          <span>Checking</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-tile-green" />
-          <span>Solution Found</span>
+          <span className="w-3 h-3 rounded bg-tile-green" />
+          <span>Valid</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-tile-gray" />
-          <span>Visited</span>
+          <span className="w-3 h-3 rounded" style={{ backgroundColor: '#6b2121' }} />
+          <span>Invalid</span>
         </div>
       </div>
 
       {/* Solutions found */}
       {solutionsFound.length > 0 && (
-        <div className="mt-3 text-center text-sm text-tile-green">
-          {solutionsFound.length} solution{solutionsFound.length !== 1 ? 's' : ''} found!
+        <div className="mt-3 text-center text-xs">
+          <span className="text-gray-400">Valid chains: </span>
+          <span className="text-tile-green font-mono">
+            {solutionsFound.join(', ')} → CRANE
+          </span>
         </div>
       )}
     </div>
