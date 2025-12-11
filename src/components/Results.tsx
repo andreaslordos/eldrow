@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { Chain } from '@/lib/types';
 
 interface ResultsProps {
@@ -8,11 +9,44 @@ interface ResultsProps {
   hasCalculated: boolean;
 }
 
+const CHUNK_SIZE = 1000;
+
 export default function Results({
   chains,
   isCalculating,
   hasCalculated,
 }: ResultsProps) {
+  const [displayCount, setDisplayCount] = useState(CHUNK_SIZE);
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Reset display count when chains change
+  useEffect(() => {
+    setDisplayCount(CHUNK_SIZE);
+  }, [chains]);
+
+  // Infinite scroll with IntersectionObserver
+  useEffect(() => {
+    const loader = loaderRef.current;
+    if (!loader) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayCount < chains.length) {
+          setDisplayCount(prev => Math.min(prev + CHUNK_SIZE, chains.length));
+        }
+      },
+      {
+        root: containerRef.current,
+        rootMargin: '100px',
+        threshold: 0,
+      }
+    );
+
+    observer.observe(loader);
+    return () => observer.disconnect();
+  }, [displayCount, chains.length]);
+
   if (isCalculating) {
     return (
       <div className="w-full max-w-[600px] mt-8">
@@ -53,6 +87,9 @@ export default function Results({
     );
   }
 
+  const displayedChains = chains.slice(0, displayCount);
+  const hasMore = displayCount < chains.length;
+
   return (
     <div className="w-full max-w-[600px] mt-8">
       <div className="border-t border-gray-700 pt-6">
@@ -63,8 +100,11 @@ export default function Results({
           </span>
         </h2>
 
-        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-          {chains.map((chain, index) => (
+        <div
+          ref={containerRef}
+          className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"
+        >
+          {displayedChains.map((chain, index) => (
             <div
               key={index}
               className="bg-result-bg rounded-md px-3 py-2 text-sm"
@@ -82,7 +122,21 @@ export default function Results({
               ))}
             </div>
           ))}
+
+          {/* Invisible loader element for infinite scroll */}
+          {hasMore && (
+            <div ref={loaderRef} className="py-2 text-center text-gray-500 text-sm">
+              Loading more...
+            </div>
+          )}
         </div>
+
+        {/* Show count info */}
+        {displayCount < chains.length && (
+          <p className="text-gray-500 text-xs text-center mt-2">
+            Showing {displayCount} of {chains.length} chains. Scroll for more.
+          </p>
+        )}
       </div>
     </div>
   );

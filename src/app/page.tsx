@@ -32,7 +32,6 @@ export default function Home() {
   // Options state
   const [answer, setAnswer] = useState('');
   const [progressMode, setProgressMode] = useState<ProgressMode>('strict');
-  const [noRepeat, setNoRepeat] = useState(true);
   const [weirdFallback, setWeirdFallback] = useState(true);
 
   // Results state
@@ -71,40 +70,47 @@ export default function Home() {
     setTimeout(() => {
       try {
         // Convert grid to RowSpecs
-        // Only include rows that have at least one non-gray color
+        // Find the last row with any non-gray color, then process all rows up to it
+        // This ensures all-gray rows (meaning "no letters match") are included
+        let lastActiveRow = -1;
+        for (let rowIdx = 5; rowIdx >= 0; rowIdx--) {
+          if (grid[rowIdx].some(tile => tile.color !== 0)) {
+            lastActiveRow = rowIdx;
+            break;
+          }
+        }
+
         const rows: RowSpec[] = [];
 
-        for (let rowIdx = 0; rowIdx < 6; rowIdx++) {
+        // Process all rows from 0 to lastActiveRow (inclusive)
+        for (let rowIdx = 0; rowIdx <= lastActiveRow; rowIdx++) {
           const row = grid[rowIdx];
-          const hasColor = row.some(tile => tile.color !== 0);
 
-          if (hasColor) {
-            // Build pattern code from colors
-            const trits = row.map(tile => tile.color);
-            const patternCode = encodeTrits(trits);
+          // Build pattern code from colors
+          const trits = row.map(tile => tile.color);
+          const patternCode = encodeTrits(trits);
 
-            // Build guess string (letters with '*' for empty)
-            const hasAnyLetter = row.some(tile => tile.letter !== '');
-            let guess: string | null = null;
+          // Build guess string (letters with '*' for empty)
+          const hasAnyLetter = row.some(tile => tile.letter !== '');
+          let guess: string | null = null;
 
-            if (hasAnyLetter) {
-              // If some letters are filled, create pattern with wildcards
-              guess = row.map(tile => tile.letter || '*').join('');
-            }
-
-            rows.push({ patternCode, guess });
+          if (hasAnyLetter) {
+            // If some letters are filled, create pattern with wildcards
+            guess = row.map(tile => tile.letter || '*').join('');
           }
+
+          rows.push({ patternCode, guess });
         }
 
         // Enumerate chains
         const foundChains: Chain[] = [];
-        const maxSolutions = 1000; // Limit to prevent browser hang
+        const maxSolutions = 10000; // Increased limit for infinite scroll
 
         for (const chain of reverser.enumerateChains(
           rows,
           answer,
           progressMode,
-          noRepeat,
+          true, // noRepeat always true
           weirdFallback,
           maxSolutions
         )) {
@@ -119,7 +125,7 @@ export default function Home() {
         setIsCalculating(false);
       }
     }, 50);
-  }, [reverser, grid, answer, progressMode, noRepeat, weirdFallback]);
+  }, [reverser, grid, answer, progressMode, weirdFallback]);
 
   return (
     <main className="min-h-screen bg-background flex flex-col items-center py-8 px-4">
@@ -166,8 +172,6 @@ export default function Home() {
         onAnswerChange={setAnswer}
         progressMode={progressMode}
         onProgressModeChange={setProgressMode}
-        noRepeat={noRepeat}
-        onNoRepeatChange={setNoRepeat}
         weirdFallback={weirdFallback}
         onWeirdFallbackChange={setWeirdFallback}
         onCalculate={handleCalculate}
