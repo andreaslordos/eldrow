@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Chain } from '@/lib/types';
 
 interface ResultsProps {
@@ -9,25 +8,11 @@ interface ResultsProps {
   hasCalculated: boolean;
 }
 
-const INITIAL_DISPLAY_COUNT = 50;
-const LOAD_MORE_COUNT = 50;
-
 export default function Results({
   chains,
   isCalculating,
   hasCalculated,
 }: ResultsProps) {
-  const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
-
-  const handleLoadMore = () => {
-    setDisplayCount((prev) => prev + LOAD_MORE_COUNT);
-  };
-
-  // Reset display count when chains change
-  if (chains.length > 0 && displayCount > chains.length) {
-    // Don't reset, just cap it
-  }
-
   if (isCalculating) {
     return (
       <div className="w-full max-w-[600px] mt-8">
@@ -68,9 +53,6 @@ export default function Results({
     );
   }
 
-  const displayedChains = chains.slice(0, displayCount);
-  const hasMore = chains.length > displayCount;
-
   return (
     <div className="w-full max-w-[600px] mt-8">
       <div className="border-t border-gray-700 pt-6">
@@ -82,7 +64,7 @@ export default function Results({
         </h2>
 
         <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-          {displayedChains.map((chain, index) => (
+          {chains.map((chain, index) => (
             <div
               key={index}
               className="bg-result-bg rounded-md px-3 py-2 text-sm"
@@ -101,15 +83,6 @@ export default function Results({
             </div>
           ))}
         </div>
-
-        {hasMore && (
-          <button
-            onClick={handleLoadMore}
-            className="mt-4 w-full py-2 px-4 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors text-sm"
-          >
-            Show more ({chains.length - displayCount} remaining)
-          </button>
-        )}
       </div>
     </div>
   );

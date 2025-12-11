@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import Grid from '@/components/Grid';
 import OptionsPanel from '@/components/OptionsPanel';
 import Results from '@/components/Results';
+import HowItWorksModal from '@/components/HowItWorksModal';
 import { GridState, TileState, ProgressMode, Chain, RowSpec } from '@/lib/types';
 import { WordleReverser, encodeTrits } from '@/lib/wordleLogic';
 
@@ -38,6 +39,9 @@ export default function Home() {
   const [chains, setChains] = useState<Chain[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
+
+  // Modal state
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   // WordleReverser instance
   const [reverser, setReverser] = useState<WordleReverser | null>(null);
@@ -120,14 +124,26 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background flex flex-col items-center py-8 px-4">
       {/* Header */}
-      <header className="mb-8">
-        <h1 className="text-4xl font-bold text-white tracking-wider">
+      <header className="w-full max-w-[350px] relative mb-8">
+        <button
+          onClick={() => setShowHowItWorks(true)}
+          className="absolute left-0 top-0 text-xs text-gray-400 hover:text-white transition-colors underline underline-offset-2"
+        >
+          How does this work?
+        </button>
+        <h1 className="text-4xl font-bold text-white tracking-wider text-center">
           ELDROW
         </h1>
         <p className="text-gray-500 text-center text-sm mt-1">
           Reverse Wordle Solver
         </p>
       </header>
+
+      {/* How It Works Modal */}
+      <HowItWorksModal
+        isOpen={showHowItWorks}
+        onClose={() => setShowHowItWorks(false)}
+      />
 
       {/* Grid */}
       <Grid
