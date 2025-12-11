@@ -70,14 +70,31 @@ export default function Home() {
     setTimeout(() => {
       try {
         // Convert grid to RowSpecs
-        // Find the last row with any non-gray color, then process all rows up to it
-        // This ensures all-gray rows (meaning "no letters match") are included
-        let lastActiveRow = -1;
-        for (let rowIdx = 5; rowIdx >= 0; rowIdx--) {
-          if (grid[rowIdx].some(tile => tile.color !== 0)) {
-            lastActiveRow = rowIdx;
+        // Check if any row is all green (successful guess = won the game)
+        let winningRow = -1;
+        for (let rowIdx = 0; rowIdx < 6; rowIdx++) {
+          if (grid[rowIdx].every(tile => tile.color === 2)) {
+            winningRow = rowIdx;
             break;
           }
+        }
+
+        // If there's a winning row, process up to and including it
+        // If no winning row (user failed), process all 6 rows
+        let lastActiveRow: number;
+        if (winningRow !== -1) {
+          lastActiveRow = winningRow;
+        } else {
+          // No all-green row = user failed, need all 6 guesses
+          // But only if they've set up at least one row
+          let hasAnyColor = false;
+          for (let rowIdx = 0; rowIdx < 6; rowIdx++) {
+            if (grid[rowIdx].some(tile => tile.color !== 0)) {
+              hasAnyColor = true;
+              break;
+            }
+          }
+          lastActiveRow = hasAnyColor ? 5 : -1;
         }
 
         const rows: RowSpec[] = [];
