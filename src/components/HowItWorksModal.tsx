@@ -102,14 +102,14 @@ export default function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProp
         <section className="bg-gray-800/50 rounded-lg p-4">
           <h3 className="text-base font-semibold text-white mb-3">Example</h3>
           <p className="text-gray-400 text-xs mb-3">
-            If the answer is <span className="text-tile-green font-mono">GUESS</span> and you enter this pattern:
+            If the answer is <span className="text-tile-green font-mono">CRANE</span> and you enter this pattern:
           </p>
           <div className="flex flex-col gap-2 mb-3">
-            <MiniRow letters={['C', 'R', 'A', 'N', 'E']} colors={['gray', 'gray', 'gray', 'gray', 'gray']} />
-            <MiniRow letters={['S', 'L', 'U', 'G', 'S']} colors={['yellow', 'gray', 'yellow', 'yellow', 'green']} />
+            <MiniRow letters={['', '', '', '', '']} colors={['gray', 'gray', 'gray', 'gray', 'gray']} />
+            <MiniRow letters={['', '', '', '', '']} colors={['green', 'green', 'green', 'green', 'green']} />
           </div>
           <p className="text-gray-400 text-xs">
-            Eldrow will find all valid first words (like CRANE, AUDIO, etc.) that could lead to this pattern.
+            Eldrow will find all valid first words (like LYMPH, JUMPY, etc.) that share no letters with CRANE.
           </p>
         </section>
 

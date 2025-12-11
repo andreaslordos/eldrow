@@ -7,37 +7,47 @@ interface NodeState {
   status: 'idle' | 'exploring' | 'backtrack' | 'solution' | 'visited';
 }
 
-// Tree structure showing Eldrow searching for valid first words
-// Scenario: Answer is CRANE, Row 1 is all gray, Row 2 is all green
-// We're finding words that share NO letters with CRANE
+// Two-level tree: Row 1 candidates, then Row 2 candidates under valid Row 1 words
+// Scenario: Finding chains where Row 1 is all gray, Row 2 is all green against CRANE
 const TREE_NODES = [
-  { id: 'root', label: 'Row 1', x: 150, y: 20, children: ['a', 'b', 'c', 'd'] },
-  { id: 'a', label: 'LYMPH', x: 45, y: 90, children: [] },   // Valid - no shared letters
-  { id: 'b', label: 'TRACE', x: 105, y: 90, children: [] },  // Invalid - has R,A,C,E
-  { id: 'c', label: 'JUMPY', x: 195, y: 90, children: [] },  // Valid - no shared letters
-  { id: 'd', label: 'FRESH', x: 255, y: 90, children: [] },  // Invalid - has R,E
+  { id: 'root', label: 'Start', x: 200, y: 20, children: ['a', 'b', 'c'] },
+  // Row 1 candidates
+  { id: 'a', label: 'LYMPH', x: 70, y: 80, children: ['a1', 'a2'] },   // Valid - no shared letters
+  { id: 'b', label: 'TRACE', x: 200, y: 80, children: [] },            // Invalid - has R,A,C,E
+  { id: 'c', label: 'JUMPY', x: 330, y: 80, children: ['c1'] },        // Valid - no shared letters
+  // Row 2 candidates under LYMPH
+  { id: 'a1', label: 'CRANE', x: 40, y: 140, children: [] },           // Valid - matches answer!
+  { id: 'a2', label: 'BRICK', x: 100, y: 140, children: [] },          // Invalid - not the answer
+  // Row 2 candidates under JUMPY
+  { id: 'c1', label: 'CRANE', x: 330, y: 140, children: [] },          // Valid - matches answer!
 ];
 
 const EDGES = [
   { from: 'root', to: 'a' },
   { from: 'root', to: 'b' },
   { from: 'root', to: 'c' },
-  { from: 'root', to: 'd' },
+  { from: 'a', to: 'a1' },
+  { from: 'a', to: 'a2' },
+  { from: 'c', to: 'c1' },
 ];
 
-// DFS animation sequence - checking each candidate word
-const DFS_SEQUENCE: Array<{ nodeId: string; action: 'explore' | 'backtrack' | 'solution' }> = [
+// DFS animation sequence - exploring the tree depth-first
+const DFS_SEQUENCE: Array<{ nodeId: string; action: 'explore' | 'backtrack' | 'solution'; chain?: string[] }> = [
   { nodeId: 'root', action: 'explore' },
-  { nodeId: 'a', action: 'explore' },    // Check LYMPH
-  { nodeId: 'a', action: 'solution' },   // LYMPH works! (all gray against CRANE)
-  { nodeId: 'a', action: 'backtrack' },
-  { nodeId: 'b', action: 'explore' },    // Check TRACE
-  { nodeId: 'b', action: 'backtrack' },  // TRACE fails (has R,A,C,E)
-  { nodeId: 'c', action: 'explore' },    // Check JUMPY
-  { nodeId: 'c', action: 'solution' },   // JUMPY works!
-  { nodeId: 'c', action: 'backtrack' },
-  { nodeId: 'd', action: 'explore' },    // Check FRESH
-  { nodeId: 'd', action: 'backtrack' },  // FRESH fails (has R,E)
+  { nodeId: 'a', action: 'explore' },      // Check LYMPH for Row 1
+  { nodeId: 'a1', action: 'explore' },     // Check CRANE for Row 2
+  { nodeId: 'a1', action: 'solution', chain: ['LYMPH', 'CRANE'] },  // Found valid chain!
+  { nodeId: 'a1', action: 'backtrack' },
+  { nodeId: 'a2', action: 'explore' },     // Check BRICK for Row 2
+  { nodeId: 'a2', action: 'backtrack' },   // BRICK doesn't match pattern
+  { nodeId: 'a', action: 'backtrack' },    // Done with LYMPH subtree
+  { nodeId: 'b', action: 'explore' },      // Check TRACE for Row 1
+  { nodeId: 'b', action: 'backtrack' },    // TRACE fails (shares letters with CRANE)
+  { nodeId: 'c', action: 'explore' },      // Check JUMPY for Row 1
+  { nodeId: 'c1', action: 'explore' },     // Check CRANE for Row 2
+  { nodeId: 'c1', action: 'solution', chain: ['JUMPY', 'CRANE'] },  // Found valid chain!
+  { nodeId: 'c1', action: 'backtrack' },
+  { nodeId: 'c', action: 'backtrack' },    // Done with JUMPY subtree
   { nodeId: 'root', action: 'backtrack' },
 ];
 
@@ -51,11 +61,11 @@ export default function DFSAnimation() {
   });
   const [currentStep, setCurrentStep] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [solutionsFound, setSolutionsFound] = useState<string[]>([]);
+  const [chainsFound, setChainsFound] = useState<string[][]>([]);
 
   const reset = useCallback(() => {
     setCurrentStep(-1);
-    setSolutionsFound([]);
+    setChainsFound([]);
     setNodeStates(() => {
       const map = new Map();
       TREE_NODES.forEach(node => {
@@ -73,7 +83,7 @@ export default function DFSAnimation() {
         return prev;
       }
 
-      const { nodeId, action } = DFS_SEQUENCE[next];
+      const { nodeId, action, chain } = DFS_SEQUENCE[next];
 
       setNodeStates(prevStates => {
         const newStates = new Map(prevStates);
@@ -86,8 +96,9 @@ export default function DFSAnimation() {
             newStatus = currentState.status === 'solution' ? 'solution' : 'visited';
           } else if (action === 'solution') {
             newStatus = 'solution';
-            const nodeLabel = TREE_NODES.find(n => n.id === nodeId)?.label || nodeId;
-            setSolutionsFound(prev => [...prev, nodeLabel]);
+            if (chain) {
+              setChainsFound(prev => [...prev, chain]);
+            }
           }
           newStates.set(nodeId, { ...currentState, status: newStatus });
         }
@@ -103,7 +114,7 @@ export default function DFSAnimation() {
 
     const interval = setInterval(() => {
       step();
-    }, 700);
+    }, 600);
 
     return () => clearInterval(interval);
   }, [isPlaying, step]);
@@ -126,7 +137,6 @@ export default function DFSAnimation() {
 
   const getNodeClass = (status: NodeState['status']) => {
     if (status === 'exploring') return 'animate-pulse';
-    if (status === 'solution') return 'animate-bounce-subtle';
     return '';
   };
 
@@ -136,13 +146,13 @@ export default function DFSAnimation() {
     <div className="w-full">
       {/* Context label */}
       <div className="text-center mb-2 text-xs text-gray-500">
-        Finding words that produce <span className="text-tile-gray px-1 rounded">all gray</span> against <span className="text-tile-green font-mono">CRANE</span>
+        Finding 2-word chains ending in <span className="text-tile-green font-mono">CRANE</span>
       </div>
 
       <svg
-        viewBox="0 0 300 130"
-        className="w-full max-w-[300px] mx-auto"
-        style={{ minHeight: '130px' }}
+        viewBox="0 0 400 170"
+        className="w-full max-w-[400px] mx-auto"
+        style={{ minHeight: '170px' }}
       >
         {/* Edges */}
         {EDGES.map(edge => {
@@ -170,6 +180,10 @@ export default function DFSAnimation() {
           );
         })}
 
+        {/* Row labels */}
+        <text x="10" y="84" fill="#666" fontSize="9" fontFamily="sans-serif">Row 1</text>
+        <text x="10" y="144" fill="#666" fontSize="9" fontFamily="sans-serif">Row 2</text>
+
         {/* Nodes */}
         {TREE_NODES.map(n => {
           const state = nodeStates.get(n.id);
@@ -178,31 +192,17 @@ export default function DFSAnimation() {
 
           return (
             <g key={n.id} className={getNodeClass(status)}>
-              {isRoot ? (
-                <rect
-                  x={n.x - 25}
-                  y={n.y - 12}
-                  width={50}
-                  height={24}
-                  rx={4}
-                  fill={getNodeColor(status)}
-                  stroke={status === 'exploring' ? '#fff' : 'transparent'}
-                  strokeWidth={2}
-                  className="transition-all duration-300"
-                />
-              ) : (
-                <rect
-                  x={n.x - 28}
-                  y={n.y - 12}
-                  width={56}
-                  height={24}
-                  rx={4}
-                  fill={getNodeColor(status)}
-                  stroke={status === 'exploring' ? '#fff' : 'transparent'}
-                  strokeWidth={2}
-                  className="transition-all duration-300"
-                />
-              )}
+              <rect
+                x={n.x - (isRoot ? 22 : 28)}
+                y={n.y - 12}
+                width={isRoot ? 44 : 56}
+                height={24}
+                rx={4}
+                fill={getNodeColor(status)}
+                stroke={status === 'exploring' ? '#fff' : 'transparent'}
+                strokeWidth={2}
+                className="transition-all duration-300"
+              />
               <text
                 x={n.x}
                 y={n.y + 4}
@@ -266,12 +266,12 @@ export default function DFSAnimation() {
         </div>
       </div>
 
-      {/* Solutions found */}
-      {solutionsFound.length > 0 && (
+      {/* Chains found */}
+      {chainsFound.length > 0 && (
         <div className="mt-3 text-center text-xs">
-          <span className="text-gray-400">Valid chains: </span>
+          <span className="text-gray-400">Found: </span>
           <span className="text-tile-green font-mono">
-            {solutionsFound.join(', ')} → CRANE
+            {chainsFound.map(chain => chain.join(' → ')).join(', ')}
           </span>
         </div>
       )}
