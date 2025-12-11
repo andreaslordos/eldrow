@@ -60,7 +60,7 @@ export default function DFSAnimation() {
     return map;
   });
   const [currentStep, setCurrentStep] = useState(-1);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [chainsFound, setChainsFound] = useState<string[][]>([]);
 
   const reset = useCallback(() => {
@@ -79,7 +79,6 @@ export default function DFSAnimation() {
     setCurrentStep(prev => {
       const next = prev + 1;
       if (next >= DFS_SEQUENCE.length) {
-        setIsPlaying(false);
         return prev;
       }
       return next;
@@ -132,11 +131,15 @@ export default function DFSAnimation() {
     return () => clearInterval(interval);
   }, [isPlaying, step]);
 
+  // Loop the animation: reset after a pause when finished
   useEffect(() => {
     if (currentStep >= DFS_SEQUENCE.length - 1) {
-      setIsPlaying(false);
+      const timeout = setTimeout(() => {
+        reset();
+      }, 2000); // Pause for 2 seconds before restarting
+      return () => clearTimeout(timeout);
     }
-  }, [currentStep]);
+  }, [currentStep, reset]);
 
   const getNodeColor = (status: NodeState['status']) => {
     switch (status) {
@@ -232,36 +235,6 @@ export default function DFSAnimation() {
           );
         })}
       </svg>
-
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-3 mt-3">
-        <button
-          onClick={() => {
-            if (currentStep >= DFS_SEQUENCE.length - 1) {
-              reset();
-              setTimeout(() => setIsPlaying(true), 100);
-            } else {
-              setIsPlaying(!isPlaying);
-            }
-          }}
-          className="px-4 py-2 bg-tile-green hover:bg-green-600 text-white text-sm rounded-md transition-colors"
-        >
-          {currentStep >= DFS_SEQUENCE.length - 1 ? 'Restart' : isPlaying ? 'Pause' : 'Play'}
-        </button>
-        <button
-          onClick={step}
-          disabled={isPlaying || currentStep >= DFS_SEQUENCE.length - 1}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm rounded-md transition-colors"
-        >
-          Step
-        </button>
-        <button
-          onClick={reset}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-md transition-colors"
-        >
-          Reset
-        </button>
-      </div>
 
       {/* Legend */}
       <div className="flex flex-wrap justify-center gap-4 mt-3 text-xs text-gray-400">
