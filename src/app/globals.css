@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+:root {
+  /* NYT Wordle color palette */
+  --background: #121213;
+  --foreground: #ffffff;
+
+  /* Tile colors */
+  --tile-gray: #3a3a3c;
+  --tile-yellow: #b59f3b;
+  --tile-green: #538d4e;
+  --tile-border: #3a3a3c;
+
+  /* UI colors */
+  --options-bg: #1a1a1b;
+  --input-bg: #2a2a2b;
+  --input-border: #3a3a3c;
+  --result-bg: #1a1a1b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-tile-gray: var(--tile-gray);
+  --color-tile-yellow: var(--tile-yellow);
+  --color-tile-green: var(--tile-green);
+  --color-tile-border: var(--tile-border);
+  --color-options-bg: var(--options-bg);
+  --color-input-bg: var(--input-bg);
+  --color-input-border: var(--input-border);
+  --color-result-bg: var(--result-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Custom scrollbar for results */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--options-bg);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--tile-gray);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4c;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--tile-green);
+  border-color: var(--tile-green);
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--tile-green);
+}
+
+/* Select styling */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* Input focus styling */
+input:focus,
+select:focus {
+  outline: none;
+}
+
+/* Button hover effects */
+button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Ring offset for tile selection */
+.ring-offset-background {
+  --tw-ring-offset-color: var(--background);
+}
